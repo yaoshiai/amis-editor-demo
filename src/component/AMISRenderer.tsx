@@ -32,6 +32,18 @@ export function schema2component(
 
       const props = this.props
       const store = props.store
+
+      // 检查 store 是否存活
+      if (!store || !store._isMSTTreeNode || !store.isAlive()) {
+        // 如果 store 不存活,返回一个基本的环境对象
+        return {
+          session,
+          updateLocation: () => {},
+          jumpTo: () => {},
+          isCurrentUrl: () => false
+        }
+      }
+
       const rootEnv = getEnv(store)
 
       const normalizeLink = (to: string, preserveHash?: boolean) => {
@@ -158,6 +170,11 @@ export function schema2component(
       const { router, match, location, history, store, schema: schemaProp, jumpTo, updateLocation, embedMode, ...rest } = this.props
       let finalSchema = schemaProp || schema
       let body: React.ReactNode
+
+      // 检查 store 是否存活
+      if (!store || !store._isMSTTreeNode || !store.isAlive()) {
+        return <div>Store unavailable</div>
+      }
 
       if (!finalSchema.type) {
         finalSchema = { ...finalSchema, type: 'page' }
