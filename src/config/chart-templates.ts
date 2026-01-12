@@ -625,3 +625,168 @@ export function getTemplatesByCategory(category: ChartTemplate['category']): Cha
 export function getTemplateById(id: string): ChartTemplate | undefined {
   return chartTemplates.find((template) => template.id === id)
 }
+
+// ==================== 组件类型切换专用模板 ====================
+
+/**
+ * 简化的图表组件模板
+ * 用于快速创建 tab 中的类型切换
+ */
+export interface SimpleChartTemplate {
+  // 组件类型 (amis renderer type)
+  type: 'line-chart' | 'pie-chart' | 'bar-chart'
+  // 组件显示名称
+  name: string
+  // 组件图标
+  icon: string
+  // ECharts 配置
+  config: any
+}
+
+// 折线图组件模板
+export const lineChartComponentTemplate: SimpleChartTemplate = {
+  type: 'line-chart',
+  name: '折线图',
+  icon: 'fa fa-chart-line',
+  config: {
+    xAxis: {
+      type: 'category',
+      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [
+      {
+        data: [820, 932, 901, 934, 1290, 1330, 1320],
+        type: 'line'
+      }
+    ],
+    tooltip: {
+      show: true,
+      trigger: 'axis'
+    },
+    legend: {
+      show: true,
+      orient: 'horizontal',
+      left: 'center'
+    },
+    backgroundColor: 'transparent',
+    animation: true,
+    animationDuration: 1000
+  }
+}
+
+// 饼图组件模板
+export const pieChartComponentTemplate: SimpleChartTemplate = {
+  type: 'pie-chart',
+  name: '饼图',
+  icon: 'fa fa-chart-pie',
+  config: {
+    series: [
+      {
+        type: 'pie',
+        data: [
+          { value: 335, name: '直接访问' },
+          { value: 310, name: '邮件营销' },
+          { value: 234, name: '联盟广告' },
+          { value: 135, name: '视频广告' },
+          { value: 1548, name: '搜索引擎' }
+        ],
+        radius: '50%',
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ],
+    tooltip: {
+      show: true,
+      trigger: 'item'
+    },
+    legend: {
+      show: true,
+      orient: 'horizontal',
+      left: 'center'
+    },
+    backgroundColor: 'transparent',
+    animation: true,
+    animationDuration: 1000
+  }
+}
+
+// 柱状图组件模板
+export const barChartComponentTemplate: SimpleChartTemplate = {
+  type: 'bar-chart',
+  name: '柱状图',
+  icon: 'fa fa-chart-bar',
+  config: {
+    xAxis: {
+      type: 'category',
+      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [
+      {
+        data: [120, 200, 150, 80, 70, 110, 130],
+        type: 'bar',
+        showBackground: true,
+        backgroundStyle: {
+          color: 'rgba(180, 180, 180, 0.2)'
+        }
+      }
+    ],
+    tooltip: {
+      show: true,
+      trigger: 'axis'
+    },
+    legend: {
+      show: true,
+      orient: 'horizontal',
+      left: 'center'
+    },
+    backgroundColor: 'transparent',
+    animation: true,
+    animationDuration: 1000
+  }
+}
+
+/**
+ * 图表类型映射表 (用于组件切换)
+ * key: 图表类型标识 ('line' | 'pie' | 'bar')
+ * value: 组件模板
+ */
+export const chartComponentTemplateMap: Record<string, SimpleChartTemplate> = {
+  line: lineChartComponentTemplate,
+  pie: pieChartComponentTemplate,
+  bar: barChartComponentTemplate
+}
+
+/**
+ * 根据图表类型获取组件模板
+ * @param chartType 图表类型: 'line' | 'pie' | 'bar'
+ * @returns 图表组件模板
+ */
+export function getChartComponentTemplate(chartType: string): SimpleChartTemplate {
+  const template = chartComponentTemplateMap[chartType]
+  if (!template) {
+    console.warn(`未找到图表类型 "${chartType}" 的组件模板,使用折线图作为默认值`)
+    return lineChartComponentTemplate
+  }
+  return template
+}
+
+/**
+ * 图表类型切换选项配置
+ * 用于快速创建 tab 中的 button-group-select
+ */
+export const chartTypeOptions = [
+  { label: '折线图', value: 'line', icon: 'fa fa-chart-line' },
+  { label: '饼图', value: 'pie', icon: 'fa fa-chart-pie' },
+  { label: '柱状图', value: 'bar', icon: 'fa fa-chart-bar' }
+]
