@@ -65,3 +65,12 @@ gh-pages
 .DS_Store
 
 package-lock.json
+pnpm-lock.yaml
+
+# Vite
+dist/
+dist-ssr/
+*.local
+
+# Build directories
+demo-*/
