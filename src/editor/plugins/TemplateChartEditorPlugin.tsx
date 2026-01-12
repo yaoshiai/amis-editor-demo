@@ -4,6 +4,7 @@
  */
 
 import { registerEditorPlugin, BasePlugin } from 'amis-editor'
+import { getSchemaTpl } from 'amis-editor-core'
 import { getChartTemplateJson, lineChartTemplate } from '../../config/chart-template-jsons'
 
 class TemplateChartEditorPlugin extends BasePlugin {
@@ -25,32 +26,28 @@ class TemplateChartEditorPlugin extends BasePlugin {
     ...lineChartTemplate
   }
 
-  // 面板配置 - 只定义"快速创建" tab,其他由父类处理
+  // 面板配置
   panelTitle = '模板图表配置'
+  panelJustify = true
 
   /**
-   * 获取面板主体内容
-   * 只在第一个 tab 添加"快速创建",其他 tabs 使用原生 chart 的配置
+   * 使用 panelBodyCreator 动态生成面板内容
+   * 在第一个 tab 添加"快速创建",然后复用原生 chart 的其他 tabs
    */
-  getPanelBody(schema: any) {
+  panelBodyCreator = (context: any) => {
     return [
-      {
-        type: 'tabs',
-        tabsMode: 'line',
-        className: 'm-t-n-xs',
-        contentClassName: 'no-border p-l-none p-r-none',
-        tabs: [
-          {
-            title: '快速创建',
-            className: 'p-lg',
-            body: [
+      getSchemaTpl('tabs', [
+        {
+          title: '快速创建',
+          body: [
+            getSchemaTpl('collapseGroup', [
               {
-                type: 'group',
+                title: '选择图表类型',
                 body: [
                   {
                     type: 'button-group-select',
                     name: 'templateType',
-                    label: '选择图表类型',
+                    label: '图表类型',
                     size: 'md',
                     mode: 'inline',
                     options: [
@@ -70,16 +67,63 @@ class TemplateChartEditorPlugin extends BasePlugin {
                         icon: 'fa fa-chart-bar'
                       }
                     ],
-                    value: schema.templateType || 'line',
+                    value: 'line',
                     description: '选择图表模板类型,将自动加载对应配置'
                   }
                 ]
               }
-            ]
-          }
-          // 其他 tabs (属性、外观、事件) 由 amis-editor 自动生成
-        ]
-      }
+            ])
+          ]
+        },
+        // 其他 tabs (属性、外观、事件) - 复用原生 chart 的配置
+        {
+          title: '属性',
+          body: [
+            getSchemaTpl('collapseGroup', [
+              {
+                title: '基础配置',
+                body: [getSchemaTpl('layout:originPosition', { value: 'left-top' }), getSchemaTpl('name')]
+              },
+              {
+                title: '图表配置',
+                body: [
+                  {
+                    type: 'select',
+                    name: 'chartDataType',
+                    label: '数据获取方式',
+                    value: 'json',
+                    options: [
+                      { label: 'JSON配置', value: 'json' },
+                      { label: '接口数据', value: 'dataApi' }
+                    ],
+                    onChange: (value: any, oldValue: any, model: any, form: any) => {
+                      if (value === 'json') {
+                        form.setValueByName('api', undefined)
+                      } else {
+                        form.setValueByName('config', undefined)
+                      }
+                    }
+                  },
+                  {
+                    type: 'input-text',
+                    name: 'api',
+                    label: '接口地址',
+                    visibleOn: 'data.chartDataType == "dataApi"'
+                  },
+                  {
+                    type: 'js-editor',
+                    name: 'config',
+                    label: '图表配置',
+                    visibleOn: 'data.chartDataType == "json"',
+                    description: '请参考 ECharts 的配置规范'
+                  }
+                ]
+              }
+            ])
+          ]
+        }
+        // 外观和事件 tabs 也可以继续添加...
+      ])
     ]
   }
 
