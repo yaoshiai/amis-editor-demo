@@ -190,7 +190,13 @@ function PreviewWrapper({ store }: { store: IMainStore }) {
           <Route
             key={item.id}
             path={`/${item.path}`}
-            element={<AMISRenderer schema={item.schema} />}
+            element={
+              <AMISRenderer
+                schema={item.schema}
+                history={null}
+                location={location}
+              />
+            }
           />
         ))}
         <Route path="*" element={<NotFound />} />

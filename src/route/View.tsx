@@ -19,7 +19,7 @@ function ViewWrapper({ store }: { store: IMainStore }) {
     }
   }, [menuId])
 
-  return <AMISRenderer schema={pageSchema} />
+  return <AMISRenderer schema={pageSchema} history={null} location={null} />
 }
 
 export default observer(ViewWrapper)
