@@ -4,7 +4,7 @@
  */
 
 import { registerEditorPlugin, BasePlugin } from 'amis-editor'
-import { getChartTemplateJson, lineChartTemplate, pieChartTemplate, barChartTemplate } from '../../config/chart-template-jsons'
+import { getChartTemplateJson, lineChartTemplate } from '../../config/chart-template-jsons'
 
 class TemplateChartEditorPlugin extends BasePlugin {
   // 独立的渲染器名称,不覆盖原生 chart
@@ -25,57 +25,63 @@ class TemplateChartEditorPlugin extends BasePlugin {
     ...lineChartTemplate
   }
 
-  // 面板配置 - 在原生 chart 基础上添加"快速创建" tab
+  // 面板配置 - 只定义"快速创建" tab,其他由父类处理
   panelTitle = '模板图表配置'
-  panelBody = [
-    {
-      type: 'tabs',
-      tabsMode: 'line',
-      className: 'm-t-n-xs',
-      contentClassName: 'no-border p-l-none p-r-none',
-      tabs: [
-        {
-          title: '快速创建',
-          className: 'p-lg',
-          body: [
-            {
-              type: 'group',
-              body: [
-                {
-                  type: 'button-group-select',
-                  name: 'templateType',
-                  label: '选择图表类型',
-                  size: 'md',
-                  mode: 'inline',
-                  options: [
-                    {
-                      label: '折线图',
-                      value: 'line',
-                      icon: 'fa fa-chart-line'
-                    },
-                    {
-                      label: '饼图',
-                      value: 'pie',
-                      icon: 'fa fa-chart-pie'
-                    },
-                    {
-                      label: '柱状图',
-                      value: 'bar',
-                      icon: 'fa fa-chart-bar'
-                    }
-                  ],
-                  value: 'line',
-                  description: '选择图表模板类型,将自动加载对应配置'
-                }
-              ]
-            }
-          ]
-        }
-        // 其他 tabs (属性、外观、事件) 将由 amis 原生 chart 插件提供
-        // 我们不需要重复定义
-      ]
-    }
-  ]
+
+  /**
+   * 获取面板主体内容
+   * 只在第一个 tab 添加"快速创建",其他 tabs 使用原生 chart 的配置
+   */
+  getPanelBody(schema: any) {
+    return [
+      {
+        type: 'tabs',
+        tabsMode: 'line',
+        className: 'm-t-n-xs',
+        contentClassName: 'no-border p-l-none p-r-none',
+        tabs: [
+          {
+            title: '快速创建',
+            className: 'p-lg',
+            body: [
+              {
+                type: 'group',
+                body: [
+                  {
+                    type: 'button-group-select',
+                    name: 'templateType',
+                    label: '选择图表类型',
+                    size: 'md',
+                    mode: 'inline',
+                    options: [
+                      {
+                        label: '折线图',
+                        value: 'line',
+                        icon: 'fa fa-chart-line'
+                      },
+                      {
+                        label: '饼图',
+                        value: 'pie',
+                        icon: 'fa fa-chart-pie'
+                      },
+                      {
+                        label: '柱状图',
+                        value: 'bar',
+                        icon: 'fa fa-chart-bar'
+                      }
+                    ],
+                    value: schema.templateType || 'line',
+                    description: '选择图表模板类型,将自动加载对应配置'
+                  }
+                ]
+              }
+            ]
+          }
+          // 其他 tabs (属性、外观、事件) 由 amis-editor 自动生成
+        ]
+      }
+    ]
+  }
 
   /**
    * 监听 templateType 变化,自动加载对应模板
