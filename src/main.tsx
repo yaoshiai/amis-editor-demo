@@ -17,8 +17,6 @@ import { setDefaultTheme } from 'amis'
 
 setDefaultTheme('cxd')
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-)
+// 移除 StrictMode 以避免与 amis-editor 的 MobX State Tree 冲突
+// StrictMode 会导致组件双重渲染,触发 MST 生命周期问题
+ReactDOM.createRoot(document.getElementById('root')!).render(<App />)
