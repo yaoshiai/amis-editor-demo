@@ -3,7 +3,8 @@ import { ToastComponent, AlertComponent, Spinner } from 'amis'
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { observer } from 'mobx-react'
 import { IMainStore } from '../store/index'
-import '../renderer/MyRenderer'
+// 暂时注释掉示例组件,因为装饰器在 Vite 中有问题
+// import '../renderer/MyRenderer'
 const Preview = React.lazy(() => import('./Preview'))
 const Editor = React.lazy(() => import('./Editor'))
 const View = React.lazy(() => import('./View'))

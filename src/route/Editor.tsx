@@ -6,8 +6,9 @@ import { toast } from 'amis'
 import { Icon } from '../icons/index'
 import { IMainStore } from '../store'
 import '../editor/DisabledEditorPlugin' // 用于隐藏一些不需要的Editor预置组件
-import '../renderer/MyRenderer'
-import '../editor/MyRenderer'
+// 暂时注释掉示例组件,因为装饰器在 Vite 中有问题
+// import '../renderer/MyRenderer'
+// import '../editor/MyRenderer'
 
 let currentIndex = -1
 
