@@ -10,6 +10,9 @@ class ChartEditorPlugin extends BasePlugin {
   // 关键配置: 覆盖原生 chart 组件
   rendererName = 'chart'
 
+  // 设置高优先级,确保覆盖原生插件
+  order = -100
+
   // 组件信息
   name = '自定义图表'
   description = '支持多种图表类型的可视化组件'
