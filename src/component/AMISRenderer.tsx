@@ -1,6 +1,6 @@
 import React from 'react'
 import { inject, observer } from 'mobx-react'
-import { getEnv } from 'mobx-state-tree'
+import { getEnv, isAlive } from 'mobx-state-tree'
 import { IMainStore } from '../store'
 import qs from 'qs'
 import { render as amisRender, utils, filter } from 'amis'
@@ -34,8 +34,27 @@ export function schema2component(
       const store = props.store
 
       // 检查 store 是否存活
-      if (!store || !store._isMSTTreeNode || !store.isAlive()) {
-        // 如果 store 不存活,返回一个基本的环境对象
+      if (!store) {
+        return {
+          session,
+          updateLocation: () => {},
+          jumpTo: () => {},
+          isCurrentUrl: () => false
+        }
+      }
+
+      try {
+        // 使用 isAlive 函数检查 store 是否存活
+        if (!isAlive(store)) {
+          return {
+            session,
+            updateLocation: () => {},
+            jumpTo: () => {},
+            isCurrentUrl: () => false
+          }
+        }
+      } catch (e) {
+        // 如果检查失败,返回基本环境对象
         return {
           session,
           updateLocation: () => {},
@@ -172,7 +191,17 @@ export function schema2component(
       let body: React.ReactNode
 
       // 检查 store 是否存活
-      if (!store || !store._isMSTTreeNode || !store.isAlive()) {
+      if (!store) {
+        return <div>Store unavailable</div>
+      }
+
+      try {
+        // 使用 isAlive 函数检查 store 是否存活
+        if (!isAlive(store)) {
+          return <div>Store unavailable</div>
+        }
+      } catch (e) {
+        // 如果检查失败,返回错误信息
         return <div>Store unavailable</div>
       }
 
