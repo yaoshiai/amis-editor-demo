@@ -17,6 +17,9 @@ import { setDefaultTheme } from 'amis'
 
 setDefaultTheme('cxd')
 
+// Monaco Editor 配置 (必须在组件注册前)
+import './config/monaco'
+
 // 注册自定义组件
 import './editor/DisabledEditorPlugin'
 import './editor/plugins/ChartEditorPlugin'
