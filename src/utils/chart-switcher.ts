@@ -79,9 +79,9 @@ export function getChartTypeValue(rendererName: string): string {
  */
 export function getChartTypeDescription(chartType: string): string {
   const descriptionMap: Record<string, string> = {
-    line: '当前已选择折线图',
-    pie: '当前已选择饼图',
-    bar: '当前已选择柱状图'
+    line: '适用于展示负荷曲线、电压趋势等随时间变化的电力数据',
+    pie: '适用于展示用电量占比、能耗分布等比例关系',
+    bar: '适用于对比各变电站、各部门的用电量大小'
   }
-  return descriptionMap[chartType] || '当前已选择折线图'
+  return descriptionMap[chartType] || '适用于展示负荷曲线、电压趋势等随时间变化的电力数据'
 }

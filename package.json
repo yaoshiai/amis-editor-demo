@@ -1,7 +1,7 @@
 {
   "name": "amis-editor-demo",
   "version": "1.0.0",
-  "description": "amis 可视化编辑器",
+  "description": "DW 可视化编辑器",
   "main": "index.js",
   "scripts": {
     "dev": "vite",

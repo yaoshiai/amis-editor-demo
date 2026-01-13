@@ -6,9 +6,14 @@ import { toast } from 'amis'
 import { Icon } from '../icons/index'
 import { IMainStore } from '../store'
 import '../editor/DisabledEditorPlugin' // 用于隐藏一些不需要的Editor预置组件
+import { setupMockAPI } from '../mock-api/mock-service' // 启动 Mock API 服务
 // 暂时注释掉示例组件,因为装饰器在 Vite 中有问题
 // import '../renderer/MyRenderer'
 // import '../editor/MyRenderer'
+
+// 启动 Mock API 服务（用于演示自动刷新功能）
+// 注意：mock-service 内部有防止重复初始化的机制
+setupMockAPI()
 
 let currentIndex = -1
 
@@ -53,7 +58,7 @@ function EditorWrapper({ store }: { store: IMainStore }) {
   return (
     <div className="Editor-Demo">
       <div className="Editor-header">
-        <div className="Editor-title">amis 可视化编辑器</div>
+        <div className="Editor-title">DW 可视化编辑器</div>
         {/* 移动端切换按钮已屏蔽 */}
         <div className="Editor-header-actions">
           <ShortcutKey />

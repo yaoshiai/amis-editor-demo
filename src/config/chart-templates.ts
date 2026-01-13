@@ -643,33 +643,83 @@ export interface SimpleChartTemplate {
   config: any
 }
 
-// 折线图组件模板
+// 折线图组件模板 - 电力负荷监测
 export const lineChartComponentTemplate: SimpleChartTemplate = {
   type: 'line-chart',
   name: '折线图',
   icon: 'fa fa-chart-line',
   config: {
+    title: {
+      text: '24小时负荷监测曲线',
+      left: 'center',
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 'bold'
+      }
+    },
     xAxis: {
       type: 'category',
-      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      data: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+      name: '时间',
+      nameLocation: 'middle',
+      nameGap: 30
     },
     yAxis: {
-      type: 'value'
+      type: 'value',
+      name: '负荷 (MW)',
+      nameLocation: 'middle',
+      nameGap: 50,
+      axisLabel: {
+        formatter: '{value} MW'
+      }
     },
     series: [
       {
-        data: [820, 932, 901, 934, 1290, 1330, 1320],
-        type: 'line'
+        name: '有功功率',
+        data: [320, 280, 260, 290, 380, 520, 580, 610, 590, 650, 720, 580],
+        type: 'line',
+        smooth: true,
+        lineStyle: {
+          width: 3,
+          color: '#5470c6'
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(84, 112, 198, 0.4)' },
+              { offset: 1, color: 'rgba(84, 112, 198, 0.05)' }
+            ]
+          }
+        },
+        markLine: {
+          data: [
+            { type: 'average', name: '平均值' }
+          ]
+        }
       }
     ],
     tooltip: {
       show: true,
-      trigger: 'axis'
+      trigger: 'axis',
+      formatter: '{b}<br/>{a}: {c} MW'
     },
     legend: {
       show: true,
       orient: 'horizontal',
-      left: 'center'
+      left: 'center',
+      top: 30
+    },
+    grid: {
+      left: '80px',
+      right: '50px',
+      bottom: '60px',
+      top: '80px',
+      containLabel: true
     },
     backgroundColor: 'transparent',
     animation: true,
@@ -677,40 +727,62 @@ export const lineChartComponentTemplate: SimpleChartTemplate = {
   }
 }
 
-// 饼图组件模板
+// 饼图组件模板 - 用电量占比分析
 export const pieChartComponentTemplate: SimpleChartTemplate = {
   type: 'pie-chart',
   name: '饼图',
   icon: 'fa fa-chart-pie',
   config: {
+    title: {
+      text: '各部门用电量占比',
+      left: 'center',
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 'bold'
+      }
+    },
     series: [
       {
         type: 'pie',
+        name: '用电量',
         data: [
-          { value: 335, name: '直接访问' },
-          { value: 310, name: '邮件营销' },
-          { value: 234, name: '联盟广告' },
-          { value: 135, name: '视频广告' },
-          { value: 1548, name: '搜索引擎' }
+          { value: 24580, name: '生产车间' },
+          { value: 18240, name: '办公区域' },
+          { value: 12860, name: '照明系统' },
+          { value: 8950, name: '空调系统' },
+          { value: 6320, name: '其他设备' }
         ],
-        radius: '50%',
+        radius: ['40%', '70%'],
+        center: ['50%', '55%'],
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
             shadowColor: 'rgba(0, 0, 0, 0.5)'
           }
+        },
+        label: {
+          formatter: '{b}: {d}%\n{c} kWh'
+        },
+        labelLine: {
+          length: 15,
+          length2: 10
         }
       }
     ],
     tooltip: {
       show: true,
-      trigger: 'item'
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} kWh ({d}%)'
     },
     legend: {
       show: true,
       orient: 'horizontal',
-      left: 'center'
+      left: 'center',
+      top: 30
+    },
+    grid: {
+      top: '80px'
     },
     backgroundColor: 'transparent',
     animation: true,
@@ -718,37 +790,107 @@ export const pieChartComponentTemplate: SimpleChartTemplate = {
   }
 }
 
-// 柱状图组件模板
+// 柱状图组件模板 - 变电站用电对比
 export const barChartComponentTemplate: SimpleChartTemplate = {
   type: 'bar-chart',
   name: '柱状图',
   icon: 'fa fa-chart-bar',
   config: {
+    title: {
+      text: '各变电站月用电量对比',
+      left: 'center',
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 'bold'
+      }
+    },
     xAxis: {
       type: 'category',
-      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      data: ['500kV站A', '500kV站B', '220kV站C', '220kV站D', '110kV站E', '110kV站F'],
+      name: '变电站',
+      nameLocation: 'middle',
+      nameGap: 30,
+      axisLabel: {
+        rotate: 30,
+        interval: 0
+      }
     },
     yAxis: {
-      type: 'value'
+      type: 'value',
+      name: '用电量 (万kWh)',
+      nameLocation: 'middle',
+      nameGap: 50,
+      axisLabel: {
+        formatter: '{value}'
+      }
     },
     series: [
       {
-        data: [120, 200, 150, 80, 70, 110, 130],
+        name: '用电量',
+        data: [1245, 980, 756, 623, 485, 342],
         type: 'bar',
+        barWidth: '60%',
         showBackground: true,
         backgroundStyle: {
           color: 'rgba(180, 180, 180, 0.2)'
+        },
+        itemStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: '#83bff6' },
+              { offset: 1, color: '#188df0' }
+            ]
+          },
+          borderRadius: [4, 4, 0, 0]
+        },
+        label: {
+          show: true,
+          position: 'top',
+          formatter: '{c}万',
+          color: '#666'
+        },
+        emphasis: {
+          itemStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: '#2378f7' },
+                { offset: 1, color: '#83bff6' }
+              ]
+            }
+          }
         }
       }
     ],
     tooltip: {
       show: true,
-      trigger: 'axis'
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      formatter: '{b}<br/>{a}: {c} 万kWh'
     },
     legend: {
       show: true,
       orient: 'horizontal',
-      left: 'center'
+      left: 'center',
+      top: 30
+    },
+    grid: {
+      left: '90px',
+      right: '50px',
+      bottom: '70px',
+      top: '80px',
+      containLabel: true
     },
     backgroundColor: 'transparent',
     animation: true,

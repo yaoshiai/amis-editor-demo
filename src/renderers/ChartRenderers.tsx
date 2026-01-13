@@ -16,6 +16,7 @@ export class TemplateChartRenderer extends React.Component<any> {
   render() {
     const { type, ...rest } = this.props
     // 转换为原生 chart 类型并渲染
+    // amis 会自动处理 interval 字段，实现自动刷新（需要配置 api）
     return render({
       type: 'chart',
       ...rest

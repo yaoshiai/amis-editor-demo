@@ -10,6 +10,20 @@ import { registerEditorPlugin, BasePlugin, getEventControlConfig } from 'amis-ed
 import { getSchemaTpl, tipedLabel, defaultValue } from 'amis-editor-core'
 import { chartTypeOptions, getChartComponentTemplate } from '../../config/chart-templates'
 import { getChartTypeDescription } from '../../utils/chart-switcher'
+import {
+  departmentOptions,
+  timePeriodOptions,
+  metricOptions,
+  refreshIntervalOptions,
+  alarmThresholdOptions,
+  getMetricUnit
+} from '../../config/power-chart-config'
+import {
+  updatePieChartConfig,
+  updateBarChartConfig,
+  updateLineChartConfig,
+  addAlarmLines
+} from '../../utils/chart-data-manager'
 
 // 默认事件参数结构
 const DEFAULT_EVENT_PARAMS = [
@@ -66,29 +80,79 @@ const DEFAULT_EVENT_PARAMS = [
   }
 ]
 
-// 默认图表配置
+// 默认图表配置 - 24小时负荷监测（电力业务场景）
 const chartDefaultConfig = {
+  title: {
+    text: '24小时负荷监测曲线',
+    left: 'center',
+    textStyle: {
+      fontSize: 16,
+      fontWeight: 'bold'
+    }
+  },
   xAxis: {
     type: 'category',
-    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    data: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+    name: '时间',
+    nameLocation: 'middle',
+    nameGap: 30
   },
   yAxis: {
-    type: 'value'
+    type: 'value',
+    name: '负荷 (MW)',
+    nameLocation: 'middle',
+    nameGap: 50,
+    axisLabel: {
+      formatter: '{value} MW'
+    }
   },
   series: [
     {
-      data: [820, 932, 901, 934, 1290, 1330, 1320],
-      type: 'line'
+      name: '有功功率',
+      data: [320, 280, 260, 290, 380, 520, 580, 610, 590, 650, 720, 580],
+      type: 'line',
+      smooth: true,
+      lineStyle: {
+        width: 3,
+        color: '#5470c6'
+      },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(84, 112, 198, 0.4)' },
+            { offset: 1, color: 'rgba(84, 112, 198, 0.05)' }
+          ]
+        }
+      },
+      markLine: {
+        data: [
+          { type: 'average', name: '平均值' }
+        ]
+      }
     }
   ],
   tooltip: {
     show: true,
-    trigger: 'axis'
+    trigger: 'axis',
+    formatter: '{b}<br/>{a}: {c} MW'
   },
   legend: {
     show: true,
     orient: 'horizontal',
-    left: 'center'
+    left: 'center',
+    top: 30
+  },
+  grid: {
+    left: '80px',
+    right: '50px',
+    bottom: '60px',
+    top: '80px',
+    containLabel: true
   },
   backgroundColor: 'transparent'
 }
@@ -101,12 +165,12 @@ class TemplateChartPlugin extends BasePlugin {
 
   // 组件信息
   name = '模板图表'
-  isBaseComponent = true
+  isBaseComponent = false  // 设置为 false 使其显示在"自定义组件" tab
   description = '可切换的图表组件，支持折线图、饼图、柱状图'
   docLink = '/amis/zh-CN/components/chart'
   icon = 'fa fa-chart-line'
   pluginIcon = 'chart-plugin'
-  tags = ['展示']
+  tags = ['图表']  // 在自定义组件 tab 内按"图表"分组
 
   // 保存 manager 引用
   manager: any = null
@@ -114,6 +178,48 @@ class TemplateChartPlugin extends BasePlugin {
   constructor(manager: any) {
     super(manager)
     this.manager = manager
+  }
+
+  /**
+   * 更新组件配置的通用方法
+   * @param newConfig 新的图表配置
+   * @param businessFields 业务字段（如：deptId, timePeriod, metrics 等）
+   */
+  updateComponentConfig(newConfig: any, businessFields?: Record<string, any>) {
+    const manager = this.manager
+    if (!manager) {
+      console.error('Editor manager not available')
+      return
+    }
+
+    const store = manager.store
+    const activeId = store.activeId
+
+    if (!activeId) {
+      console.error('No active component found')
+      return
+    }
+
+    const schema = store.getSchema(activeId)
+    if (!schema) {
+      console.error('Cannot get current schema')
+      return
+    }
+
+    // 构建新的 schema，保留布局属性，同时更新业务字段
+    const updatedSchema: any = {
+      ...schema,
+      config: newConfig,
+      ...(businessFields || {})
+    }
+
+    // 更新组件
+    try {
+      manager.replaceChild(activeId, updatedSchema)
+      console.log('Component config updated successfully')
+    } catch (error: any) {
+      console.error('Failed to update component config:', error)
+    }
   }
 
   // 默认使用折线图配置
@@ -286,11 +392,320 @@ class TemplateChartPlugin extends BasePlugin {
         {
           title: '快速创建',
           body: [
+            // 1. 图表类型选择（所有图表类型都显示）
             {
               type: 'fieldset',
-              title: '图表类型',
+              title: '📊 图表类型',
               collapsable: false,
               body: [chartTypeSwitcher]
+            },
+
+            // 2. 部门/区域配置（仅在饼图时显示）
+            {
+              type: 'fieldset',
+              title: '🏢 组织机构',
+              collapsable: false,
+              visibleOn: 'this.chartType === "pie"',
+              body: [
+                {
+                  type: 'select',
+                  name: 'deptId',
+                  label: '所属部门',
+                  placeholder: '请选择部门或变电站',
+                  options: departmentOptions,
+                  searchable: true,
+                  clearable: true,
+                  description: '选择要统计用电量的部门或区域',
+                  onChange: (value: any, oldValue: any, model: any, form: any) => {
+                    console.log('部门选择变更:', value)
+
+                    if (!value) {
+                      console.log('清空部门选择，不更新配置')
+                      return
+                    }
+
+                    // 获取当前组件的配置
+                    const currentConfig = form?.data?.config
+                    if (!currentConfig) {
+                      console.error('无法获取当前配置')
+                      return
+                    }
+
+                    // 使用数据管理器更新配置
+                    const newConfig = updatePieChartConfig(currentConfig, value)
+
+                    // 更新组件配置，同时更新 deptId 字段
+                    this.updateComponentConfig(newConfig, { deptId: value })
+                  }
+                }
+              ]
+            },
+
+            // 3. 时间维度配置（仅在柱状图时显示统计周期）
+            {
+              type: 'fieldset',
+              title: '⏰ 时间维度',
+              collapsable: false,
+              body: [
+                // 统计周期（仅在柱状图时显示）
+                {
+                  type: 'button-group-select',
+                  name: 'timePeriod',
+                  label: '统计周期',
+                  mode: 'horizontal',
+                  visibleOn: 'this.chartType === "bar"',
+                  options: timePeriodOptions.map(t => ({
+                    label: t.label,
+                    value: t.value,
+                    icon: 'fa fa-clock'
+                  })),
+                  value: '1day',
+                  description: '选择数据统计的时间粒度（月度对比/季度对比/年度对比）',
+                  onChange: (value: any, oldValue: any, model: any, form: any) => {
+                    console.log('统计周期变更:', value)
+
+                    if (!value) {
+                      console.log('清空统计周期选择，不更新配置')
+                      return
+                    }
+
+                    // 获取当前组件的配置
+                    const currentConfig = form?.data?.config
+                    if (!currentConfig) {
+                      console.error('无法获取当前配置')
+                      return
+                    }
+
+                    // 使用数据管理器更新配置
+                    const newConfig = updateBarChartConfig(currentConfig, value)
+
+                    // 更新组件配置，同时更新 timePeriod 字段
+                    this.updateComponentConfig(newConfig, { timePeriod: value })
+                  }
+                },
+
+                // 自动刷新（所有图表类型都显示）
+                {
+                  type: 'select',
+                  name: 'interval',
+                  label: '自动刷新',
+                  placeholder: '选择刷新频率',
+                  options: refreshIntervalOptions.map(r => ({
+                    label: r.label,
+                    value: r.value
+                  })),
+                  clearable: true,
+                  description: '设置后图表将自动定时刷新数据',
+                  onChange: (value: any, oldValue: any, model: any, form: any) => {
+                    console.log('刷新频率变更:', value)
+
+                    // 获取当前组件的配置
+                    const currentConfig = form?.data?.config
+                    if (!currentConfig) {
+                      console.error('无法获取当前配置')
+                      return
+                    }
+
+                    // 更新配置中的 interval 字段
+                    const newConfig = {
+                      ...currentConfig
+                    }
+
+                    // 更新组件配置，同时更新 interval 字段
+                    this.updateComponentConfig(newConfig, { interval: value })
+
+                    // 提示用户需要配置 API 接口才能使用自动刷新
+                    if (value && value > 0) {
+                      console.log('自动刷新已设置，请确保在"属性"tab中配置了数据接口')
+                    }
+                  }
+                }
+              ]
+            },
+
+            // 4. 监测指标配置（仅在折线图时显示）
+            {
+              type: 'fieldset',
+              title: '📈 监测指标',
+              collapsable: false,
+              visibleOn: 'this.chartType === "line"',
+              body: [
+                {
+                  type: 'checkboxes',
+                  name: 'metrics',
+                  label: '选择指标',
+                  options: metricOptions.map(m => ({
+                    label: m.name,
+                    value: m.id,
+                    icon: m.icon
+                  })),
+                  joinValues: true,
+                  delimiter: ',',
+                  value: 'active-power',
+                  description: '可选择多个指标进行对比展示（如：有功功率 + 无功功率）',
+                  onChange: (value: any, oldValue: any, model: any, form: any) => {
+                    console.log('监测指标变更:', value)
+
+                    if (!value) {
+                      console.log('清空指标选择，不更新配置')
+                      return
+                    }
+
+                    // 将逗号分隔的字符串转换为数组
+                    const metricIds = typeof value === 'string' ? value.split(',') : value
+
+                    // 获取当前组件的配置和小数位数
+                    const currentConfig = form?.data?.config
+                    const decimalPlaces = form?.data?.decimalPlaces || 2
+
+                    if (!currentConfig) {
+                      console.error('无法获取当前配置')
+                      return
+                    }
+
+                    // 使用数据管理器更新配置
+                    const newConfig = updateLineChartConfig(currentConfig, metricIds, decimalPlaces)
+
+                    // 更新组件配置，同时更新 metrics 字段
+                    this.updateComponentConfig(newConfig, { metrics: value })
+                  }
+                },
+                {
+                  type: 'input-number',
+                  name: 'decimalPlaces',
+                  label: '小数位数',
+                  value: 2,
+                  min: 0,
+                  max: 6,
+                  description: '设置数据显示的小数位数（如：2位显示320.50 MW）',
+                  onChange: (value: any, oldValue: any, model: any, form: any) => {
+                    console.log('小数位数变更:', value)
+
+                    // 获取当前选择的指标
+                    const metrics = form?.data?.metrics
+                    if (!metrics) {
+                      console.log('没有选择指标，不更新配置')
+                      return
+                    }
+
+                    // 将逗号分隔的字符串转换为数组
+                    const metricIds = typeof metrics === 'string' ? metrics.split(',') : metrics
+
+                    // 获取当前组件的配置
+                    const currentConfig = form?.data?.config
+                    if (!currentConfig) {
+                      console.error('无法获取当前配置')
+                      return
+                    }
+
+                    // 使用数据管理器更新配置
+                    const newConfig = updateLineChartConfig(currentConfig, metricIds, value || 2)
+
+                    // 更新组件配置，同时更新 decimalPlaces 字段
+                    this.updateComponentConfig(newConfig, { decimalPlaces: value || 2 })
+                  }
+                }
+              ]
+            },
+
+            // 5. 告警阈值设置（仅在折线图时显示）
+            {
+              type: 'fieldset',
+              title: '⚠️ 告警设置',
+              collapsable: true,
+              collapsed: true,
+              visibleOn: 'this.chartType === "line"',
+              body: [
+                {
+                  type: 'combo',
+                  name: 'alarms',
+                  label: '告警规则',
+                  multiple: true,
+                  multiLine: true,
+                  items: [
+                    {
+                      type: 'select',
+                      name: 'type',
+                      label: '告警类型',
+                      options: [
+                        { label: '上限告警', value: 'upper' },
+                        { label: '下限告警', value: 'lower' }
+                      ],
+                      value: 'upper'
+                    },
+                    {
+                      type: 'input-number',
+                      name: 'threshold',
+                      label: '阈值',
+                      placeholder: '请输入阈值',
+                      description: '超过此值时触发告警'
+                    },
+                    {
+                      type: 'select',
+                      name: 'metricId',
+                      label: '监测指标',
+                      options: metricOptions.map(m => ({
+                        label: m.name,
+                        value: m.id
+                      })),
+                      value: 'active-power',
+                      description: '选择要监控的指标'
+                    }
+                  ],
+                  description: '设置告警阈值，当数值超过设定值时将在图表上显示告警线',
+                  onChange: (value: any, oldValue: any, model: any, form: any) => {
+                    console.log('告警规则变更:', value)
+
+                    if (!value || value.length === 0) {
+                      console.log('清空告警规则，不更新配置')
+                      return
+                    }
+
+                    // 获取当前组件的配置
+                    const currentConfig = form?.data?.config
+                    if (!currentConfig) {
+                      console.error('无法获取当前配置')
+                      return
+                    }
+
+                    // 使用数据管理器添加告警线
+                    const newConfig = addAlarmLines(currentConfig, value)
+
+                    // 更新组件配置，同时更新 alarms 字段
+                    this.updateComponentConfig(newConfig, { alarms: value })
+                  }
+                }
+              ]
+            },
+
+            // 6. 快速操作按钮（所有图表类型都显示）
+            {
+              type: 'group',
+              body: [
+                {
+                  type: 'button',
+                  label: '应用配置',
+                  level: 'primary',
+                  actionType: 'submit',
+                  size: 'md'
+                },
+                {
+                  type: 'button',
+                  label: '保存为模板',
+                  level: 'secondary',
+                  size: 'md',
+                  onClick: () => {
+                    console.log('保存为模板功能待实现')
+                  }
+                },
+                {
+                  type: 'button',
+                  label: '重置',
+                  level: 'default',
+                  size: 'md',
+                  actionType: 'reset'
+                }
+              ]
             }
           ]
         },
