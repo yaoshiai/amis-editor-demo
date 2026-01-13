@@ -10,17 +10,11 @@ import { registerEditorPlugin, BasePlugin, getEventControlConfig } from 'amis-ed
 import { getSchemaTpl, tipedLabel, defaultValue } from 'amis-editor-core'
 import { tableTypeOptions, getTableComponentTemplate, getTableTypeDescription } from '../../config/table-templates'
 
-// 默认表格配置
-const tableDefaultConfig = {
-  type: 'crud',
-  title: '设备台账列表',
-  perPage: 10,
-  columns: [],
-  api: {
-    method: 'get',
-    url: '/api/table/basic'
-  }
-}
+// 导入 Table2 的事件和动作定义
+import { Table2RenderereEvent, Table2RendererAction } from 'amis-editor'
+
+// 默认使用设备台账模板
+const basicTableTemplate = getTableComponentTemplate('basic')
 
 class TemplateTablePlugin extends BasePlugin {
   rendererName = 'template-table'
@@ -45,171 +39,22 @@ class TemplateTablePlugin extends BasePlugin {
     this.manager = manager
   }
 
-  // 默认使用基础表格配置
+  // 默认使用设备台账模板
   scaffold = {
     type: 'template-table',
     tableType: 'basic',
-    perPage: 10,
-    showIndex: true,
-    title: '设备台账列表',
-    // 提供简单的默认列配置，避免空列导致问题
-    columns: [
-      {
-        name: 'id',
-        label: 'ID',
-        type: 'text'
-      },
-      {
-        name: 'name',
-        label: '名称',
-        type: 'text'
-      }
-    ]
+    ...basicTableTemplate.config
   }
 
   previewSchema = {
     ...this.scaffold
   }
 
-  // 事件定义 - 与 amis 原生 table2 保持一致
-  events = [
-    {
-      eventName: 'selectedChange',
-      eventLabel: '选中项变化',
-      description: '表格选中项发生变化时触发',
-      dataSchema: [
-        {
-          type: 'object',
-          properties: {
-            data: {
-              type: 'object',
-              title: '事件数据',
-              properties: {
-                selectedItems: {
-                  type: 'array',
-                  title: '选中的项'
-                },
-                unSelectedItems: {
-                  type: 'array',
-                  title: '未选中的项'
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      eventName: 'columnSort',
-      eventLabel: '列排序',
-      description: '点击列头排序时触发',
-      dataSchema: [
-        {
-          type: 'object',
-          properties: {
-            data: {
-              type: 'object',
-              title: '事件数据',
-              properties: {
-                orderBy: {
-                  type: 'string',
-                  title: '排序字段'
-                },
-                orderDir: {
-                  type: 'string',
-                  title: '排序方向'
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      eventName: 'columnFilter',
-      eventLabel: '列筛选',
-      description: '列筛选条件变化时触发',
-      dataSchema: [
-        {
-          type: 'object',
-          properties: {
-            data: {
-              type: 'object',
-              title: '事件数据',
-              properties: {
-                filterName: {
-                  type: 'string',
-                  title: '筛选列名称'
-                },
-                filterValue: {
-                  type: 'string',
-                  title: '筛选值'
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      eventName: 'rowClick',
-      eventLabel: '行点击',
-      description: '点击表格行时触发',
-      dataSchema: [
-        {
-          type: 'object',
-          properties: {
-            data: {
-              type: 'object',
-              title: '事件数据',
-              description: '当前行数据'
-            }
-          }
-        }
-      ]
-    },
-    {
-      eventName: 'rowDbClick',
-      eventLabel: '行双击',
-      description: '双击表格行时触发',
-      dataSchema: [
-        {
-          type: 'object',
-          properties: {
-            data: {
-              type: 'object',
-              title: '事件数据',
-              description: '当前行数据'
-            }
-          }
-        }
-      ]
-    }
-  ]
+  // 事件定义 - 直接使用 Table2 的事件
+  events = Table2RenderereEvent
 
-  // 动作定义 - 与 amis 原生 table2 保持一致
-  actions = [
-    {
-      actionType: 'select',
-      actionLabel: '选中',
-      description: '选中表格行'
-    },
-    {
-      actionType: 'selectAll',
-      actionLabel: '全选',
-      description: '选中所有行'
-    },
-    {
-      actionType: 'clearAll',
-      actionLabel: '清空选择',
-      description: '清空选中项'
-    },
-    {
-      actionType: 'reload',
-      actionLabel: '重新加载',
-      description: '触发组件数据刷新并重新渲染'
-    }
-  ]
+  // 动作定义 - 直接使用 Table2 的动作
+  actions = Table2RendererAction
 
   panelTitle = '模板表格配置'
   panelJustify = true
@@ -236,8 +81,6 @@ class TemplateTablePlugin extends BasePlugin {
         }
 
         const store = manager.store
-
-        // 获取当前选中的节点 ID
         const activeId = store.activeId
 
         if (!activeId) {
@@ -245,9 +88,7 @@ class TemplateTablePlugin extends BasePlugin {
           return
         }
 
-        // 获取当前组件的 schema
         const schema = store.getSchema(activeId)
-
         if (!schema) {
           console.error('Cannot get current schema')
           return
@@ -263,16 +104,11 @@ class TemplateTablePlugin extends BasePlugin {
           tableType: value,
           title: templateConfig.title || template.name,
           perPage: templateConfig.perPage || 10,
-          showIndex: schema.showIndex !== false,
-          // 从模板中提取列配置
+          // 从模板中提取配置
           columns: templateConfig.columns || [],
-          // 从模板中提取筛选配置
           filter: templateConfig.filter,
-          // 从模板中提取批量操作配置
           bulkActions: templateConfig.bulkActions || [],
-          // 从模板中提取行操作配置
           itemActions: templateConfig.itemActions || [],
-          // 从模板中提取工具栏配置
           headerToolbar: templateConfig.headerToolbar || [],
           footerToolbar: templateConfig.footerToolbar || [],
           // 保留布局属性
@@ -283,19 +119,17 @@ class TemplateTablePlugin extends BasePlugin {
           visible: schema.visible,
           hidden: schema.hidden,
           id: schema.id,
-          // 保留 API 配置（如果用户自定义了）
-          api: schema.api
+          // 使用新模板的 API 配置（切换类型时更新 API）
+          api: templateConfig.api
         }
 
         // 使用 manager.replaceChild 来替换整个组件
         try {
           const node = store.getNodeById(activeId)
-
           if (!node) {
             console.error('Cannot find node')
             return
           }
-
           manager.replaceChild(activeId, newSchema)
           console.log('Component replaced successfully')
         } catch (error: any) {
@@ -304,7 +138,7 @@ class TemplateTablePlugin extends BasePlugin {
       }
     }
 
-    // 返回配置面板
+    // 返回配置面板 - 参考 Table2Plugin 的结构
     return [
       getSchemaTpl('tabs', [
         // ===== 快速创建 Tab =====
@@ -341,10 +175,10 @@ class TemplateTablePlugin extends BasePlugin {
                 },
                 {
                   type: 'switch',
-                  name: 'showIndex',
-                  label: '显示序号列',
-                      value: true,
-                  description: '是否在表格第一列显示序号'
+                  name: 'columnsTogglable',
+                  label: '列显示开关',
+                  value: true,
+                  description: '是否显示列配置开关'
                 }
               ]
             },
@@ -369,143 +203,234 @@ class TemplateTablePlugin extends BasePlugin {
             }
           ]
         },
-        // ===== 属性 Tab =====
+        // ===== 属性 Tab（完全复制 Table2 的实现）=====
         {
           title: '属性',
           body: [
             getSchemaTpl('collapseGroup', [
-              // 基本配置
               {
                 title: '基本',
                 body: [
                   getSchemaTpl('layout:originPosition', {
                     value: 'left-top'
                   }),
-                  getSchemaTpl('name')
-                ]
-              },
-              // 数据配置
-              {
-                title: '数据',
-                body: [
-                  getSchemaTpl('apiControl', {
-                    label: tipedLabel('数据接口', '表格数据接口，返回的数据将作为表格数据源'),
-                    mode: 'normal'
+                  getSchemaTpl('formulaControl', {
+                    label: tipedLabel('数据源', '绑定当前上下文变量'),
+                    name: 'source',
+                    pipeIn: defaultValue('${items}')
                   }),
-                  {
-                    name: 'columns',
-                    label: tipedLabel('列配置', '配置表格的列信息'),
-                    type: 'combo',
-                    multiple: true,
-                    multiLine: true,
-                    items: [
-                      {
-                        type: 'input-text',
-                        name: 'name',
-                        label: '字段名',
-                        required: true
-                      },
-                      {
-                        type: 'input-text',
-                        name: 'label',
-                        label: '列标题',
-                        required: true
-                      },
-                      {
-                        type: 'select',
-                        name: 'type',
-                        label: '列类型',
-                        options: [
-                          { label: '文本', value: 'text' },
-                          { label: '数字', value: 'input-number' },
-                          { label: '日期', value: 'date' },
-                          { label: '时间', value: 'datetime' },
-                          { label: '映射', value: 'mapping' },
-                          { label: '图片', value: 'image' },
-                          { label: '链接', value: 'link' },
-                          { label: '操作', value: 'operation' }
-                        ],
-                        value: 'text'
-                      },
-                      {
-                        type: 'input-number',
-                        name: 'width',
-                        label: '列宽'
-                      },
-                      {
-                        type: 'textarea',
-                        name: 'remark',
-                        label: '说明'
-                      }
-                    ]
-                  },
                   getSchemaTpl('switch', {
-                    label: tipedLabel('初始是否拉取', '是否在组件初始化时自动拉取数据'),
-                    name: 'initFetch',
-                    pipeIn: defaultValue(true)
+                    name: 'title',
+                    label: '标题',
+                    pipeIn: (value: any) => !!value,
+                    pipeOut: (value: any) => {
+                      if (value) {
+                        return {
+                          type: 'container',
+                          body: [{
+                            type: 'tpl',
+                            wrapperComponent: '',
+                            tpl: '标题',
+                            inline: false,
+                            style: {
+                              fontSize: 14
+                            }
+                          }]
+                        }
+                      }
+                      return null
+                    }
                   }),
-                  {
-                    name: 'interval',
-                    label: tipedLabel('定时刷新', '设置后将自动定时刷新'),
-                    type: 'input-number',
-                    step: 500,
-                    min: 1000,
-                    unitOptions: ['ms']
-                  }
+                  getSchemaTpl('switch', {
+                    name: 'showHeader',
+                    label: '显示表头',
+                    value: true,
+                    pipeIn: (value: any) => !!value,
+                    pipeOut: (value: any) => !!value
+                  }),
+                  getSchemaTpl('switch', {
+                    visibleOn: 'this.showHeader !== false',
+                    name: 'sticky',
+                    label: '吸顶表头',
+                    pipeIn: defaultValue(false)
+                  }),
+                  getSchemaTpl('switch', {
+                    name: 'footer',
+                    label: '表尾',
+                    pipeIn: (value: any) => !!value,
+                    pipeOut: (value: any) => {
+                      if (value) {
+                        return {
+                          type: 'container',
+                          body: [{
+                            type: 'tpl',
+                            tpl: '表尾',
+                            wrapperComponent: '',
+                            inline: false,
+                            style: {
+                              fontSize: 14
+                            }
+                          }]
+                        }
+                      }
+                      return null
+                    }
+                  })
                 ]
               },
-              // 功能配置
               {
                 title: '功能',
                 body: [
                   getSchemaTpl('switch', {
-                    label: tipedLabel('可筛选', '是否显示筛选区域'),
-                    name: 'filter',
-                    value: false
-                  }),
-                  getSchemaTpl('switch', {
-                    label: tipedLabel('可排序', '是否支持列排序'),
-                    name: 'sortable',
-                    value: false
-                  }),
-                  getSchemaTpl('switch', {
-                    label: tipedLabel('列显示开关', '是否显示列配置开关'),
                     name: 'columnsTogglable',
+                    label: tipedLabel('列显示开关', '是否显示列配置开关'),
                     value: true
+                  }),
+                  getSchemaTpl('switch', {
+                    name: 'resizable',
+                    label: tipedLabel('列宽可调整', '支持拖拽调整列宽'),
+                    pipeIn: (value: any) => !!value,
+                    pipeOut: (value: any) => value
+                  }),
+                  getSchemaTpl('switch', {
+                    name: 'rowSelection',
+                    label: '行选择',
+                    hiddenOnDefault: true,
+                    mode: 'normal',
+                    formType: 'extend',
+                    bulk: false,
+                    form: {
+                      body: [
+                        {
+                          name: 'keyField',
+                          type: 'input-text',
+                          label: '主键字段'
+                        },
+                        {
+                          name: 'type',
+                          label: '选择类型',
+                          type: 'button-group-select',
+                          options: [
+                            { label: '多选', value: 'checkbox' },
+                            { label: '单选', value: 'radio' }
+                          ],
+                          pipeIn: (value: any, formStore: any) => {
+                            if (value != null && typeof value === 'string') {
+                              return value
+                            }
+                            const schema = formStore?.data
+                            return schema?.selectable === true
+                              ? schema.multiple
+                                ? 'checkbox'
+                                : 'radio'
+                              : 'checkbox'
+                          }
+                        },
+                        getSchemaTpl('switch', {
+                          name: 'fixed',
+                          label: '固定列'
+                        }),
+                        {
+                          type: 'input-number',
+                          name: 'columnWidth',
+                          label: '列宽',
+                          min: 0,
+                          pipeOut: (data: any) => data || undefined
+                        },
+                        {
+                          label: '点击行触发选中',
+                          name: 'rowClick',
+                          type: 'button-group-select',
+                          value: false,
+                          options: [
+                            { label: '是', value: true },
+                            { label: '否', value: false }
+                          ]
+                        },
+                        getSchemaTpl('formulaControl', {
+                          name: 'disableOn',
+                          label: '禁用表达式'
+                        }),
+                        {
+                          name: 'selections',
+                          label: '快捷选择',
+                          type: 'checkboxes',
+                          joinValues: false,
+                          inline: false,
+                          itemClassName: 'text-sm',
+                          options: [
+                            { label: '全部', value: 'all' },
+                            { label: '反向', value: 'invert' },
+                            { label: '无', value: 'none' },
+                            { label: '奇数行', value: 'odd' },
+                            { label: '偶数行', value: 'even' }
+                          ],
+                          pipeIn: (v: any) => {
+                            if (!v) return
+                            return v.map((item: any) => ({
+                              label: item.text,
+                              value: item.key
+                            }))
+                          },
+                          pipeOut: (v: any) => {
+                            if (!v) return
+                            return v.map((item: any) => ({
+                              key: item.value,
+                              text: item.label
+                            }))
+                          }
+                        }
+                      ]
+                    }
+                  }),
+                  getSchemaTpl('formulaControl', {
+                    label: '可勾选表达式',
+                    name: 'itemCheckableOn'
                   })
                 ]
               },
-              // 状态
-              getSchemaTpl('status')
+              {
+                title: '外观',
+                body: [
+                  getSchemaTpl('switch', {
+                    name: 'autoFillHeight',
+                    label: '自动撑满高度'
+                  }),
+                  {
+                    name: 'scroll.y',
+                    label: '纵向滚动',
+                    type: 'button-group-select',
+                    pipeIn: (v: any) => v != null,
+                    pipeOut: (v: any) => (v ? '' : null),
+                    options: [
+                      { label: '关闭', value: false },
+                      { label: '开启', value: true }
+                    ]
+                  },
+                  {
+                    name: 'scroll.x',
+                    label: tipedLabel('横向滚动', '是否开启横向滚动'),
+                    type: 'button-group-select',
+                    pipeIn: (v: any) => v != null,
+                    pipeOut: (v: any) => (v ? '' : null),
+                    options: [
+                      { label: '关闭', value: false },
+                      { label: '开启', value: true }
+                    ]
+                  }
+                ]
+              },
+              {
+                title: '状态',
+                body: [
+                  getSchemaTpl('hidden'),
+                  getSchemaTpl('visible')
+                ]
+              }
             ])
           ]
         },
-        // ===== 外观 Tab =====
-        {
-          title: '外观',
-          body: getSchemaTpl('collapseGroup', [
-            {
-              title: '基本样式',
-              body: [
-                getSchemaTpl('style:widthHeight', {
-                  widthSchema: {
-                    label: tipedLabel('宽度', '表格宽度'),
-                    pipeIn: defaultValue('100%')
-                  },
-                  heightSchema: {
-                    label: tipedLabel('高度', '表格高度'),
-                    pipeIn: defaultValue('auto')
-                  }
-                })
-              ]
-            },
-            // 使用 amis 的主题通用配置
-            ...getSchemaTpl('theme:common', {
-              exclude: ['layout']
-            })
-          ])
-        },
-        // ===== 事件 Tab =====
+        // ===== 事件 Tab（完全复制 Table2 的实现）=====
         {
           title: '事件',
           className: 'p-none',

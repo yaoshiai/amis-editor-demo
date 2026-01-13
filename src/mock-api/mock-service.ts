@@ -190,6 +190,8 @@ export function setupMockAPI() {
   isInterceptorSetup = true
 
   console.log('[Mock API] 启动模拟数据服务（axios 拦截器模式）...')
+  console.log('[Mock API] axios 对象:', axios)
+  console.log('[Mock API] 原始 adapter:', axios.defaults.adapter)
 
   // 保存原始的 adapter
   const originalAdapter = axios.defaults.adapter
@@ -197,6 +199,8 @@ export function setupMockAPI() {
   // 使用自定义 adapter 来拦截请求
   axios.defaults.adapter = async (config) => {
     const url = config.url || ''
+    
+    console.log('[Mock API] adapter 收到请求:', url)
     
     // 检查是否是需要 mock 的 API
     if (url.includes('/api/table/') || url.includes('/api/mock/chart')) {
@@ -385,19 +389,35 @@ function mockInspectionTableAPI(params: any): Promise<any> {
 
   return new Promise((resolve) => {
     setTimeout(() => {
+      const inspectionTypes = [
+        { value: 'routine', label: '例行巡检' },
+        { value: 'special', label: '专项巡检' },
+        { value: 'emergency', label: '应急巡检' }
+      ]
+      const results = [
+        { value: 'normal', label: '正常' },
+        { value: 'abnormal', label: '异常' },
+        { value: 'fault', label: '故障' }
+      ]
+
       const mockData = {
         status: 0,
         msg: '',
         data: {
-          items: Array.from({ length: perPage }, (_, i) => ({
-            id: (page - 1) * perPage + i + 1,
-            inspectionDate: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-            inspector: ['张三', '李四', '王五', '赵六'][Math.floor(Math.random() * 4)],
-            deviceName: `设备-${String((page - 1) * perPage + i + 1).padStart(3, '0')}`,
-            inspectionType: ['routine', 'special', 'emergency'][Math.floor(Math.random() * 3)],
-            result: ['normal', 'abnormal', 'fault'][Math.floor(Math.random() * 3)],
-            remark: Math.random() > 0.7 ? '发现轻微异常，需关注' : '设备运行正常'
-          })),
+          items: Array.from({ length: perPage }, (_, i) => {
+            const type = inspectionTypes[Math.floor(Math.random() * inspectionTypes.length)]
+            const result = results[Math.floor(Math.random() * results.length)]
+
+            return {
+              id: (page - 1) * perPage + i + 1,
+              inspectionDate: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+              inspector: ['张三', '李四', '王五', '赵六'][Math.floor(Math.random() * 4)],
+              deviceName: `设备-${String((page - 1) * perPage + i + 1).padStart(3, '0')}`,
+              inspectionType: type.value,
+              result: result.value,
+              remark: Math.random() > 0.7 ? '发现轻微异常，需关注' : '设备运行正常'
+            }
+          }),
           total: 150
         }
       }
@@ -414,9 +434,33 @@ function mockFaultTableAPI(params: any): Promise<any> {
 
   return new Promise((resolve) => {
     setTimeout(() => {
-      const faultTypes = ['electrical', 'mechanical', 'thermal', 'control', 'other']
-      const faultLevels = ['critical', 'major', 'minor']
-      const statuses = ['pending', 'processing', 'completed', 'closed']
+      const faultTypes = [
+        { value: 'electrical', label: '电气故障' },
+        { value: 'mechanical', label: '机械故障' },
+        { value: 'thermal', label: '热工故障' },
+        { value: 'control', label: '控制故障' },
+        { value: 'other', label: '其他' }
+      ]
+      const faultLevels = [
+        { value: 'critical', label: '重大' },
+        { value: 'major', label: '较大' },
+        { value: 'minor', label: '一般' }
+      ]
+      const statuses = [
+        { value: 'pending', label: '待处理' },
+        { value: 'processing', label: '处理中' },
+        { value: 'completed', label: '已完成' },
+        { value: 'closed', label: '已关闭' }
+      ]
+      const descriptions = [
+        '设备温度过高，超过安全阈值',
+        '绝缘性能下降，存在安全隐患',
+        '接线端子接触不良，导致发热',
+        '运行参数异常，超出正常范围',
+        '控制系统响应迟缓',
+        '机械部件磨损严重',
+        '冷却系统故障'
+      ]
 
       const mockData = {
         status: 0,
@@ -425,17 +469,20 @@ function mockFaultTableAPI(params: any): Promise<any> {
           items: Array.from({ length: perPage }, (_, i) => {
             const faultDate = new Date()
             faultDate.setDate(faultDate.getDate() - Math.floor(Math.random() * 30))
+            const faultType = faultTypes[Math.floor(Math.random() * faultTypes.length)]
+            const faultLevel = faultLevels[Math.floor(Math.random() * faultLevels.length)]
+            const status = statuses[Math.floor(Math.random() * statuses.length)]
 
             return {
               id: `WO${String((page - 1) * perPage + i + 1).padStart(6, '0')}`,
               faultDate: faultDate.toISOString().slice(0, 16).replace('T', ' '),
               deviceName: `设备-${String((page - 1) * perPage + i + 1).padStart(3, '0')}`,
-              faultType: faultTypes[Math.floor(Math.random() * faultTypes.length)],
-              faultLevel: faultLevels[Math.floor(Math.random() * faultLevels.length)],
+              faultType: faultType.value,
+              faultLevel: faultLevel.value,
               reporter: ['张三', '李四', '王五'][Math.floor(Math.random() * 3)],
-              handler: ['赵六', '钱七', '孙八'][Math.floor(Math.random() * 3)],
-              status: statuses[Math.floor(Math.random() * statuses.length)],
-              faultDescription: ['设备过热', '绝缘异常', '接触不良', '参数超标'][Math.floor(Math.random() * 4)]
+              handler: status.value !== 'pending' ? ['赵六', '钱七', '孙八'][Math.floor(Math.random() * 3)] : '',
+              status: status.value,
+              faultDescription: descriptions[Math.floor(Math.random() * descriptions.length)]
             }
           }),
           total: 200

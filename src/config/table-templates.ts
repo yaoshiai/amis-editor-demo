@@ -115,7 +115,12 @@ export const basicTableTemplate: SimpleTableTemplate = {
     headerToolbar: [],
     footerToolbar: [],
     columnsTogglable: true,
-    autoGenerateFilter: false
+    autoGenerateFilter: false,
+    // 添加 API 配置
+    api: {
+      method: 'get',
+      url: '/api/table/basic'
+    }
   }
 }
 
@@ -225,7 +230,12 @@ export const paginatedTableTemplate: SimpleTableTemplate = {
       }
     ],
     columnsTogglable: true,
-    autoGenerateFilter: false
+    autoGenerateFilter: false,
+    // 添加 API 配置
+    api: {
+      method: 'get',
+      url: '/api/table/paginated'
+    }
   }
 }
 
@@ -547,7 +557,12 @@ export const fullFeaturedTableTemplate: SimpleTableTemplate = {
       }
     ],
     columnsTogglable: true,
-    autoGenerateFilter: true
+    autoGenerateFilter: true,
+    // 添加 API 配置
+    api: {
+      method: 'get',
+      url: '/api/table/full-featured'
+    }
   }
 }
 
